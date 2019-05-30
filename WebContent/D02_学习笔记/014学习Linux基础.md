@@ -81,7 +81,63 @@ systemctl enable firewalld.service
 
 
 
+```
+su 和 su -区别
+su 切换用户，不切换环境变量
+su - 切换用户，切换环境变量
 
+```
+
+# CentOS更换国内yum源（aliyun阿里镜像）
+
+```sh
+1、下载aliyun的repo
+
+[root@master ~]# wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+
+--2016-12-30 23:33:00--  http://mirrors.aliyun.com/repo/Centos-7.repo
+Resolving mirrors.aliyun.com... 112.124.140.210, 115.28.122.210
+Connecting to mirrors.aliyun.com|112.124.140.210|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2573 (2.5K) [application/octet-stream]
+Saving to: “/etc/yum.repos.d/CentOS-Base.repo”
+
+100%[=======================================================================>] 2,573       --.-K/s   in 0s      
+
+2016-12-30 23:33:00 (147 MB/s) - “/etc/yum.repos.d/CentOS-Base.repo” saved [2573/2573]
+
+2、更新yum缓存
+
+[root@master ~]# yum clean all
+
+Loaded plugins: fastestmirror, refresh-packagekit, security
+Cleaning repos: base extras updates
+Cleaning up Everything
+Cleaning up list of fastest mirrors
+[root@master ~]# yum makecache
+Loaded plugins: fastestmirror, refresh-packagekit, security
+Determining fastest mirrors
+ * base: mirrors.aliyun.com
+ * extras: mirrors.aliyun.com
+ * updates: mirrors.aliyun.com
+base                                                                                                                                                 | 3.7 kB     00:00     
+base/group_gz                                                                                                                                        | 226 kB     00:00     
+base/filelists_db                                                                                                                                    | 6.4 MB     00:06     
+base/primary_db                                                                                                                                      | 4.7 MB     00:04     
+base/other_db                                                                                                                                        | 2.8 MB     00:02     
+extras                                                                                                                                               | 3.4 kB     00:00     
+extras/filelists_db                                                                                                                                  |  38 kB     00:00     
+extras/prestodelta                                                                                                                                   | 1.3 kB     00:00     
+extras/primary_db                                                                                                                                    |  37 kB     00:00     
+extras/other_db                                                                                                                                      |  51 kB     00:00     
+updates                                                                                                                                              | 3.4 kB     00:00     
+updates/filelists_db                                                                                                                                 | 2.5 MB     00:02     
+updates/prestodelta                                                                                                                                  | 279 kB     00:00     
+updates/primary_db                                                                                                                                   | 3.7 MB     00:03     
+updates/other_db                                                                                                                                     |  49 MB     00:49   
+
+Metadata Cache Created
+```
 
 
 

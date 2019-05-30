@@ -386,7 +386,7 @@ cd /opt/module/hadoop-2.7.2/etc/hadoop
 vi hadoop-env.sh
 
 # 修改内容
-export JAVA_HOME=/opt/module/jdk1.8.0_144
+export JAVA_HOME=/opt/module/jdk1.8.0_181
 ```
 
 ```shell
@@ -418,7 +418,7 @@ cd /opt/module/hadoop-2.7.2/etc/hadoop
 vi yarn-env.sh
 
 # 修改内容
-export JAVA_HOME=/opt/module/jdk1.8.0_144
+export JAVA_HOME=/opt/module/jdk1.8.0_181
 ```
 
 ```shell
@@ -451,7 +451,7 @@ cd /opt/module/hadoop-2.7.2/etc/hadoop
 vi mapred-env.sh
 
 # 修改内容
-export JAVA_HOME=/opt/module/jdk1.8.0_144
+export JAVA_HOME=/opt/module/jdk1.8.0_181
 ```
 
 ```shell
