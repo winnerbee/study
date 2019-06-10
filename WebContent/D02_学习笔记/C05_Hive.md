@@ -155,9 +155,11 @@ HADOOP_HOME=/opt/module/hadoop-2.7.2
 export HIVE_CONF_DIR=/opt/module/hive/conf
 
 # 5 环境变量
+vim /etc/profile
+export HIVE_HOME=/opt/module/hive
+export PATH=$PATH:$HIVE_HOME/bin
 export HADOOP_CLASSPATH=$HIVE_HOME/conf
 export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HIVE_HOME/lib
-
 source /etc/profile
 ```
 
@@ -481,9 +483,80 @@ vim hive-site.xml
 shell> bin/hive
 ```
 
+### 5.3、多窗口启动Hive测试
+
 ```sh
-# hive help帮助
-shell> bin/hive -help
+# 1 启动MySQL
+mysql -uroot -p1234
+
+# 2 查看有几个数据库
+mysql> show databases;
+
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql             |
+| performance_schema |
+| test               |
++--------------------+
+
+# 3 打开多个窗口，分别启动hive
+shell> bin/hive
+
+# 4 启动hive后，回到MySQL窗口查看数据库，显示增加了metastore数据库
+mysql> show databases;
+
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| metastore          |
+| mysql             |
+| performance_schema |
+| test               |
++--------------------+
+```
+
+## 6、HiveJDBC访问
+
+### 6.1、启动HiveServer2服务
+
+```sh
+[atguigu@hadoop102 hive]$ bin/hiveserver2
+```
+
+### 6.2、启动beeline
+
+```sql
+[atguigu@hadoop102 hive]$ bin/beeline
+Beeline version 1.2.1 by Apache Hive
+beeline>
+```
+
+### 6.3、连接hiveserver2
+
+```sh
+beeline> !connect jdbc:hive2://hadoop102:10000（回车）
+Connecting to jdbc:hive2://hadoop102:10000
+Enter username for jdbc:hive2://hadoop102:10000: atguigu（回车）
+Enter password for jdbc:hive2://hadoop102:10000: （直接回车）
+Connected to: Apache Hive (version 1.2.1)
+Driver: Hive JDBC (version 1.2.1)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+0: jdbc:hive2://hadoop102:10000> show databases;
++----------------+--+
+| database_name  |
++----------------+--+
+| default        |
+| hive_db2       |
++----------------+--+
+```
+
+## 7、Hive常用交互命令
+
+```sh
+[jay@hadoop101 apache-hive-1.2.1-bin]$ bin/hive -help
 usage: hive
  -d,--define <key=value>          Variable subsitution to apply to hive
                                   commands. e.g. -d A=B or --define A=B
@@ -497,59 +570,496 @@ usage: hive
  -i <filename>                    Initialization SQL file
  -S,--silent                      Silent mode in interactive shell
  -v,--verbose                     Verbose mode (echo executed SQL to the console)
+
+
+# 1 “-e”不进入hive的交互窗口执行sql语句
+bin/hive -e "select id from student;"
+# 2 “-f”执行脚本中sql语句
+	（1）在/opt/module/datas目录下创建hivef.sql文件
+		touch hivef.sql
+		文件中写入正确的sql语句 select *from student;
+	（2）执行文件中的sql语句
+		bin/hive -f /opt/module/datas/hivef.sql
+	（3）执行文件中的sql语句并将结果写入文件中
+		bin/hive -f /opt/module/datas/hivef.sql  > /opt/module/datas/hive_result.txt
 ```
-
-
-
-### 5.3、多窗口启动Hive测试
-
-
-
-## 6、HiveJDBC访问
-
-### 6.1、
-
-### 6.2、
-
-### 6.3、
-
-## 7、Hive常用交互命令
 
 ## 8、Hive其他命令操作
 
+```SH
+# 1 退出hive窗口：
+	exit:先隐性提交数据，再退出；
+	quit:不提交数据，退出；
+	在新版的hive中没区别了，在以前的版本是有的：
+
+# 2 在hive cli命令窗口中如何查看hdfs文件系统
+	hive(default)>dfs -ls /;
+
+# 3 在hive cli命令窗口中如何查看本地文件系统
+	hive(default)>! ls /opt/module/datas;
+
+# 4 查看在hive中输入的所有历史命令
+	（1）进入到当前用户的根目录/root或/home/atguigu
+	（2）查看. hivehistory文件
+	cat .hivehistory
+```
+
 ## 9、Hive常见属性配置
 
-### 9.1、
+### 9.1、Hive数据仓库位置配置
 
-### 9.2、
+1、Default数据仓库最原始的位置是在hdfs上的 /user/hive/warehouse 路径下。
 
-### 9.3、
+2、在仓库目录下，没有对默认的数据库default创建文件夹。如果某张表属于default数据库，直接在数据仓库目录下创建一个文件夹。
 
-### 9.4、
+3、修改default数据仓库原始位置（将hive-default.xml.template如下配置拷贝到hive-site.xml文件中）。
 
-# 第三章、
+```sh
+<property>
+	<name>hive.metastore.warehouse.dir</name>
+	<value>/user/hive/warehouse</value>
+	<description>location of default database for the warehouse</description>
+</property>
 
-## 1、
+# 配置同组用户有执行权限
+bin/hdfs dfs -chmod g+w /user/hive/warehouse
+```
 
-## 2、
+### 9.2、查询后信息显示配置
 
-## 3、
+1、在hive-site.xml文件中添加如下配置信息，就可以实现显示当前数据库，以及查询表的头信息配置。
 
-## 4、
+```xml
+<property>
+	<name>hive.cli.print.header</name>
+	<value>true</value>
+</property>
 
-## 5、
+<property>
+	<name>hive.cli.print.current.db</name>
+	<value>true</value>
+</property>
+```
 
-# 第四章、
+2、重新启动hive，对比配资前后差异
 
-## 1、
+### 9.3、Hive运行日志信息配置
 
-## 2、
+1、hive的log默认存放在 /tmp/{user.name}/hive.log 目录下（当前用户名）
 
-## 3、
+2、修改hive的log存放日志到 /opt/module/hive/logs
 
-## 4、
+```sh
+# 1 修改/opt/module/hive/conf/hive-log4j.properties.template文件名称为
+hive-log4j.properties
 
-## 5、
+# 2 复制文件 mv hive-log4j.properties.template hive-log4j.properties
+# 在hive-log4j.properties文件中修改log存放位置
+hive.log.dir=/opt/module/hive/logs
+```
+
+### 9.4、参数配置方式
+
+1、查看当前所有的配置信息
+
+```
+hive> set;
+```
+
+2、参数的配置三种方式
+
+```sh
+# 1 配置文件方式
+默认配置文件：hive-default.xml 
+用户自定义配置文件：hive-site.xml
+	注意：用户自定义配置会覆盖默认配置。另外，Hive也会读入Hadoop的配置，因为Hive是作为Hadoop的客户端启动的，Hive的配置会覆盖Hadoop的配置。配置文件的设定对本机启动的所有Hive进程都有效。
+# 2 命令行参数方式
+启动Hive时，可以在命令行添加-hiveconf param=value来设定参数。
+例如：
+[atguigu@hadoop103 hive]$ bin/hive -hiveconf mapred.reduce.tasks=10;
+注意：仅对本次hive启动有效
+查看参数设置：
+hive (default)> set mapred.reduce.tasks;
+# 3 参数声明方式
+可以在HQL中使用SET关键字设定参数
+例如：
+hive (default)> set mapred.reduce.tasks=100;
+注意：仅对本次hive启动有效。
+查看参数设置
+hive (default)> set mapred.reduce.tasks;
+```
+
+上述三种设定方式的优先级依次递增。即配置文件<命令行参数<参数声明。注意某些系统级的参数，例如log4j相关的设定，必须用前两种方式设定，因为那些参数的读取在会话建立以前已经完成了。
+
+# 第三章、Hive数据类型
+
+## 1、基本数据类型
+
+| Hive数据类型 | Java数据类型 | 长度                                                   | 例子       |
+| ------------ | ------------ | ------------------------------------------------------ | ---------- |
+| TINYINT      | byte         | 1byte 有符号整数                                       | 20         |
+| SMALINT      | short        | 2byte 有符号整数                                       | 20         |
+| INT          | int          | 4byte 有符号整数                                       | 20         |
+| BIGINT       | long         | 8byte 有符号整数                                       | 20         |
+| BOOLEAN      | boolean      | 布尔类型，true或false                                  | true false |
+| FLOAT        | float        | 单精度浮点数                                           | 3.14159    |
+| DOUBLE       | double       | 双精度浮点数                                           | 3.14159    |
+| STRING       | string       | 字符系列。可以指定字符集。<br>可以使用单引号或双引号。 | 'aa'  "bb" |
+| TIMESTAMP    |              | 时间类型                                               |            |
+| BINARY       |              | 字节数组                                               |            |
+
+对于Hive的String类型相当于数据库的varchar类型，该类型是一个可变的字符串，不过它不能声明其中最多能存储多少个字符，理论上它可以存储2GB的字符数。
+
+## 2、集合数据类型
+
+- STRUCT：和c语言中的struct类似，都可以通过“点”符号访问元素内容。例如，如果某个列的数据类型是STRUCT{first STRING, last STRING},那么第1个元素可以通过字段.first来引用。
+- MAP：MAP是一组键-值对元组集合，使用数组表示法可以访问数据。例如，如果某个列的数据类型是MAP，其中键->值对是’first’->’John’和’last’->’Doe’，那么可以通过字段名[‘last’]获取最后一个元素。
+- ARRAY：数组是一组具有相同类型和名称的变量的集合。这些变量称为数组的元素，每个数组元素都有一个编号，编号从零开始。例如，数组值为[‘John’, ‘Doe’]，那么第2个元素可以通过数组名[1]进行引用。
+
+Hive有三种复杂数据类型ARRAY、MAP和STRUCT。ARRAY和MAP和Java中的Array和Map类似，而STRUCT与C语言中的Struct类似，它封装了一个命名字段集合，复杂数据类型允许任意层次的嵌套。
+
+## 3、类型转化
+
+​	Hive的原子数据类型是可以进行隐式转换的，类似于Java的类型转换，例如某表达式使用INT类型，TINYINT会自动转换为INT类型，但是Hive不会进行反向转化，例如，某表达式使用TINYINT类型，INT不会自动转换为TINYINT类型，它会返回错误，除非使用CAST操作。
+
+1、隐式类型转换规则如下
+
+​	（1）任何整数类型都可以隐式地转换为一个范围更广的类型，如TINYINT可以转换成INT，INT可以转换成BIGINT。
+
+​	（2）所有整数类型、FLOAT和STRING类型都可以隐式地转换成DOUBLE。
+
+​	（3）TINYINT、SMALLINT、INT都可以转换为FLOAT。
+
+​	（4）BOOLEAN类型不可以转换为任何其它的类型。
+
+2、可以使用CAST操作显示进行数据类型转换
+
+​	例如CAST('1' AS INT)将把字符串'1' 转换成整数1；如果强制类型转换失败，如执行CAST('X' AS INT)，表达式返回空值 NULL。
+
+# 第四章、DDL数据定义
+
+## 1、创建数据库
+
+1、创建一个数据库，数据库在HDFS商的默认存储路径是 /user/hive/warehouse/*.db
+
+```sh
+hive (default)> create database db_hive;
+```
+
+2、避免要创建的数据库已经存在错误，增加if not exists判断（标准写法）
+
+```
+hive (default)> create database if not exists db_hive;
+```
+
+3、创建一个数据库，制定数据库在HDFS上存放的位置
+
+```
+hive (default)> create database db_hive3 location '/db_hive3.db';
+```
+
+## 2、查询数据库
+
+### 2.1、显示数据库
+
+1、显示数据库
+
+```
+hive (default)> show databases;
+```
+
+2、过滤显示查询的数据库
+
+```
+hive (default)> show databases like 'db_hive*';
+```
+
+### 2.2、查看数据库详情
+
+1、显示数据库信息
+
+```js
+hive (default)> desc database db_hive;
+OK
+db_name	comment	location	owner_name	owner_type	parameters
+db_hive		hdfs://hadoop101:9000/user/hive/warehouse/db_hive.db	jay	USER	
+Time taken: 0.098 seconds, Fetched: 1 row(s)
+```
+
+2、显示数据库详细信息，extended
+
+```js
+hive (default)> desc database extended db_hive;
+OK
+db_name	comment	location	owner_name	owner_type	parameters
+db_hive		hdfs://hadoop101:9000/user/hive/warehouse/db_hive.db	jay	USER	
+Time taken: 0.096 seconds, Fetched: 1 row(s)
+```
+
+### 2.3、切换当前数据库
+
+1、切换当前数据库
+
+```
+hive (default)> use db_hive;
+```
+
+## 3、修改数据库
+
+用户可以使用ALTER DATABASE 命令为某个数据库的 DBPROPERTIES 设置 键-值对属性值，来描述这个数据库的属性信息。数据库的其他元数据信息都是不可更改的，包括数据库名和数据库所在的目录位置。
+
+```js
+alter database db_hive set dbproperties('createtime'='20190605');
+alter database db_hive set dbproperties('level'='top1');
+```
+
+在hive中查看修改结果
+
+```js
+hive (default)> desc database extended db_hive;
+OK
+db_name	comment	location	owner_name	owner_type	parameters
+db_hive		hdfs://hadoop101:9000/user/hive/warehouse/db_hive.db	jay	USER	{createtime=20190605, level=top1}
+Time taken: 0.103 seconds, Fetched: 1 row(s)
+```
+
+## 4、删除数据库
+
+1、删除空数据库
+
+```js
+hive (default)> drop database db_hive3;
+```
+
+2、如果删除的数据库不存在，最好采用 if exists 判断数据库是否存在
+
+```
+hive (default)> drop database if exists  db_hive2;
+```
+
+3、如果数据库不为空，可以采用cascade命令，强制删除
+
+```sh
+hive (default)> drop database db_hive;
+FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. InvalidOperationException(message:Database db_hive is not empty. One or more tables exist.)
+
+# 强制删除
+hive (default)> drop database db_hive cascade;
+```
+
+## 5、创建表
+
+1、建表语句
+
+```
+CREATE [EXTERNAL] TABLE [IF NOT EXISTS] table_name 
+[(col_name data_type [COMMENT col_comment], ...)] 
+[COMMENT table_comment] 
+[PARTITIONED BY (col_name data_type [COMMENT col_comment], ...)] 
+[CLUSTERED BY (col_name, col_name, ...) 
+[SORTED BY (col_name [ASC|DESC], ...)] INTO num_buckets BUCKETS] 
+[ROW FORMAT row_format] 
+[STORED AS file_format] 
+[LOCATION hdfs_path]
+```
+
+2、字段说明
+
+1. CREATE TABLE 创建一个制定名字的表。如果相同名字的表已经存在，则抛出异常；用户可以用 IF NOT EXISTS 选项来忽略这个异常。
+2. EXTERNAL 关键字可以让用户创建一个外部表，在剪标的同事指定一个指向实际数据的路径（LOCATION），Hive创建内部表时，会将数据移动到数据仓库指向的路径；若创建外部表，仅记录数据所在的路径，不对数据的位置做任何改变。在删除表的时候，内部的表元数据和数据会被一起删除，而外部表只会删除元数据，不删除数据。
+3. COMMENT 为表和列添加注释
+4. PARTITIONED BY 创建分区表
+5. CLUSTERED BY 创建分桶表
+6. SORTED BY 不常用
+7. ROW FORMAT 列的分隔符
+8. STORED AS 指定存储文件类型
+9. LOCATION 指定表在HDFS上的存储位置
+10. LIKE 允许用户复制现有的表结构，但是不复制数据
+
+### 5.1、管理表
+
+1、理论
+
+​	默认创建的表都是所谓的管理表，有时也被成为内部表。因为这种表，Hive会（或多或少的）控制着数据的生命周期。Hive默认情况下会将这些表的数据存储在由配置项hive.metastore.warehouse.dir（例如 /user/hive/warehouse）所定义的目录的子目录下。当我们删除一个管理表时，Hive也会删除这个表中数据。管理表不适合和其他工具共享数据。
+
+2、实例操作
+
+```sh
+# 1 普通创建表
+create table if not exists student2(
+	id int, name string
+)
+row format delimited fields terminated by '\t'
+stored as textfile
+location '/user/hive/warehouse/student2';
+
+# 2 根据查询结果创建表（查询的结果会添加到新创建的表中）
+create table if not exists student3 as select id, name from student;
+
+# 3 根据已经存在的表结构创建表
+create table if not exists student4 like student;
+
+# 4 查询表的类型
+hive (default)> desc formatted student2;
+Table Type:             MANAGED_TABLE  
+```
+
+### 5.2、外部表
+
+1、理论
+
+​	因为表是外部表，所以Hive并非认为其完全拥有这份数据。删除该表并不会删除掉这份数据，不过描述表的元数据信息会被删除掉。
+
+2、管理表和外部表的使用场景
+
+​	每天将收集到的网站日志定期流入HDFS文本文件。在外部表（原始日志表）的基础商做大量的统计分析，用到的中间表，结果表使用内部表存储，数据通过SELECT+INSERT进入内部表。
+
+3、案例实操
+
+1）原始数据
+
+```sh
+# dept.txt
+10	ACCOUNTING	1700
+20	RESEARCH	1800
+30	SALES	1900
+40	OPERATIONS	1700
+```
+
+```sh
+# emp.txt
+7369	SMITH	CLERK	7902	1980-12-17	800.00		20
+7499	ALLEN	SALESMAN	7698	1981-2-20	1600.00	300.00	30
+7521	WARD	SALESMAN	7698	1981-2-22	1250.00	500.00	30
+7566	JONES	MANAGER	7839	1981-4-2	2975.00		20
+7654	MARTIN	SALESMAN	7698	1981-9-28	1250.00	1400.00	30
+7698	BLAKE	MANAGER	7839	1981-5-1	2850.00		30
+7782	CLARK	MANAGER	7839	1981-6-9	2450.00		10
+7788	SCOTT	ANALYST	7566	1987-4-19	3000.00		20
+7839	KING	PRESIDENT		1981-11-17	5000.00		10
+7844	TURNER	SALESMAN	7698	1981-9-8	1500.00	0.00	30
+7876	ADAMS	CLERK	7788	1987-5-23	1100.00		20
+7900	JAMES	CLERK	7698	1981-12-3	950.00		30
+7902	FORD	ANALYST	7566	1981-12-3	3000.00		20
+7934	MILLER	CLERK	7782	1982-1-23	1300.00		10
+```
+
+2）建表语句
+
+```sh
+# 创建部门表
+create external table if not exists default.dept(
+    deptno int,
+    dname string,
+    loc int
+)
+row format delimited fields terminated by '\t';
+```
+
+```sh
+# 创建员工表
+create external table if not exists default.emp(
+    empno int,
+    ename string,
+    job string,
+    mgr int,
+    hiredate string, 
+    sal double, 
+    comm double,
+	deptno int
+)
+row format delimited fields terminated by '\t';
+```
+
+```sh
+# 查看创建的表
+hive (default)> show tables;
+OK
+dept
+emp
+```
+
+```sh
+# 向外部表中导入数据
+hive (default)> load data local inpath '/opt/module/datas/dept.txt' into table default.dept;
+hive (default)> load data local inpath '/opt/module/datas/emp.txt' into table default.emp;
+```
+
+```sh
+# 查询结果
+hive (default)> select * from emp;
+hive (default)> select * from dept;
+```
+
+```sh
+# 查看表格式化数据
+hive (default)> desc formatted dept;
+Table Type:             EXTERNAL_TABLE
+```
+
+### 5.3、管理表与外部表的相互转换
+
+1、查询表的类型
+
+```sh
+desc formatted student2;
+```
+
+2、修改内部表student2为外部表
+
+```sh
+hive (default)> alter table student2 set tblproperties('EXTERNAL'='TRUE');
+```
+
+3、查询表的类型
+
+```sh
+hive (default)> desc formatted student2;
+Table Type:             EXTERNAL_TABLE
+```
+
+4、修改外部表student2为内部表
+
+```sh
+alter table student2 set tblproperties('EXTERNAL'='FALSE');
+```
+
+5、查询表的类型
+
+```sh
+hive (default)> desc formatted student2;
+Table Type:             MANAGED_TABLE
+```
+
+注意：('EXTERNAL'='TRUE') 和 ('EXTERNAL'='FALSE') 为固定写法，区分大小写！
+
+## 6、分区表
+
+### 6.1、分区表基本操作
+
+
+
+### 6.2、分区表注意事项
+
+
+
+## 7、修改表
+
+### 7.1、重命名表
+
+
+
+### 7.2、增加、修改和删除表分区
+
+
+
+### 7.3、增加、修改、替换列信息
+
+
+
+## 8、删除表
+
+
 
 # 第五章、
 
@@ -597,7 +1107,51 @@ usage: hive
 
 5）
 
+6）
+
+7）
+
+8）
+
+9）
+
+
+
 ## 2、
+
+1、
+
+
+
+2、
+
+
+
+3、
+
+
+
+4、
+
+
+
+5、
+
+
+
+6、
+
+
+
+7、
+
+
+
+8、
+
+
+
+9、
 
 
 
